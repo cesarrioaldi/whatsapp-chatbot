@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Bot Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;background:#0f0f13;color:#e0e0e0;min-height:100vh}
+.login-screen{display:flex;align-items:center;justify-content:center;height:100vh;background:#0f0f13}
+.login-card{background:#1a1a24;padding:40px;border-radius:12px;width:380px;text-align:center}
+.login-card h1{font-size:22px;margin-bottom:8px;color:#fff}
+.login-card p{color:#888;font-size:14px;margin-bottom:24px}
+.login-card input{width:100%;padding:12px 16px;background:#252535;border:1px solid #333;border-radius:8px;color:#fff;font-size:16px;margin-bottom:16px;outline:none}
+.login-card input:focus{border-color:#4f8cff}
+.login-card button{width:100%;padding:12px;background:#4f8cff;border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer;font-weight:600}
+.login-card button:hover{background:#3d7ae8}
+.login-card .error{color:#ff5555;font-size:13px;margin-top:8px}
+.app{display:none}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:#1a1a24;padding:20px 0;border-right:1px solid #2a2a35}
+.sidebar h2{font-size:14px;padding:0 20px;margin-bottom:20px;color:#fff;font-weight:700}
+.sidebar .tab{display:block;width:100%;padding:12px 20px;background:none;border:none;color:#888;font-size:14px;text-align:left;cursor:pointer;transition:all .15s}
+.sidebar .tab:hover{color:#fff;background:#252535}
+.sidebar .tab.active{color:#4f8cff;background:#252535;border-right:3px solid #4f8cff}
+.content{margin-left:220px;padding:24px 32px;max-width:1200px}
+.content h2{font-size:20px;font-weight:600;margin-bottom:20px;color:#fff}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:#1a1a24;border-radius:8px;padding:16px;border:1px solid #2a2a35}
+.stat-card .value{font-size:28px;font-weight:700;color:#fff}
+.stat-card .label{font-size:13px;color:#888;margin-top:4px}
+.stat-card .status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.stat-card .status-dot.online{background:#4ade80}
+.stat-card .status-dot.offline{background:#ff5555}
+.table-wrap{overflow-x:auto;background:#1a1a24;border-radius:8px;border:1px solid #2a2a35}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #2a2a35}
+th{color:#888;font-weight:600;font-size:12px;text-transform:uppercase;background:#1f1f2b}
+tr:hover td{background:#252535}
+.btn{display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;border:none;font-weight:500}
+.btn-primary{background:#4f8cff;color:#fff}
+.btn-danger{background:#ff5555;color:#fff}
+.btn-warning{background:#f5a623;color:#000}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn:hover{opacity:0.85}
+.filters{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.filters select,.filters input{background:#252535;border:1px solid #333;border-radius:6px;padding:8px 12px;color:#fff;font-size:13px;outline:none}
+.filters select:focus,.filters input:focus{border-color:#4f8cff}
+.filters select{min-width:200px}
+.filters input{min-width:140px}
+textarea{width:100%;background:#1a1a24;border:1px solid #2a2a35;border-radius:8px;color:#e0e0e0;padding:14px;font-family:'SF Mono',Consolas,monospace;font-size:13px;line-height:1.5;resize:vertical;outline:none}
+textarea:focus{border-color:#4f8cff}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;color:#888;margin-bottom:4px}
+.form-group input{width:100%;background:#252535;border:1px solid #333;border-radius:6px;padding:10px 12px;color:#fff;font-size:14px;outline:none}
+.form-group input:focus{border-color:#4f8cff}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:700px}
+.logs-box{background:#0a0a0f;border:1px solid #2a2a35;border-radius:8px;padding:14px;font-family:'SF Mono',Consolas,monospace;font-size:12px;line-height:1.6;height:500px;overflow-y:auto;white-space:pre-wrap}
+.logs-box .log-warn{color:#f5a623}
+.logs-box .log-error{color:#ff5555}
+.logs-box .log-log{color:#a0a0c0}
+.logs-box .ts{color:#555}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.actions{display:flex;gap:8px;margin-top:12px}
+.empty{color:#555;text-align:center;padding:40px;font-size:14px}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;color:#fff;font-size:14px;z-index:100;animation:slideIn .3s ease}
+.toast.success{background:#1a6a2e}
+.toast.error{background:#6a1a1a}
+.toast.info{background:#1a3a6a}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h1>🔐 WhatsApp Bot Panel</h1>
+    <p>Masukkan password untuk akses dashboard</p>
+    <input type="password" id="passwordInput" placeholder="Password" autofocus>
+    <button onclick="login()">Login</button>
+    <div id="loginError" class="error"></div>
+  </div>
+</div>
+
+<div id="app" class="app">
+  <nav class="sidebar">
+    <h2>🤖 Bot Panel</h2>
+    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" data-tab="users" onclick="switchTab('users')">👥 Users</button>
+    <button class="tab" data-tab="data" onclick="switchTab('data')">📋 Data Viewer</button>
+    <button class="tab" data-tab="agents" onclick="switchTab('agents')">📝 AGENTS.md</button>
+    <button class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
+    <button class="tab" data-tab="logs" onclick="switchTab('logs')">📜 Logs</button>
+    <button class="tab" onclick="restartBot()" style="margin-top:20px;color:#f5a623;border-top:1px solid #2a2a35">♻️ Restart Bot</button>
+  </nav>
+
+  <div class="content">
+    <!-- Dashboard -->
+    <div id="tab-dashboard" class="tab-content active">
+      <h2>📊 Dashboard</h2>
+      <div id="statsGrid" class="stats-grid"></div>
+    </div>
+
+    <!-- Users -->
+    <div id="tab-users" class="tab-content">
+      <h2>👥 Users</h2>
+      <div id="usersTable" class="table-wrap"></div>
+    </div>
+
+    <!-- Data -->
+    <div id="tab-data" class="tab-content">
+      <h2>📋 Data Viewer</h2>
+      <div class="filters">
+        <select id="dataUserFilter" onchange="loadData()"><option value="">-- All users --</option></select>
+        <input type="date" id="dataDateFilter" onchange="loadData()">
+        <select id="dataTypeFilter" onchange="loadData()">
+          <option value="food">Food Entries</option>
+          <option value="activities">Activities</option>
+          <option value="weight">Weight Logs</option>
+        </select>
+      </div>
+      <div id="dataTable" class="table-wrap"></div>
+    </div>
+
+    <!-- AGENTS.md -->
+    <div id="tab-agents" class="tab-content">
+      <h2>📝 AGENTS.md Editor</h2>
+      <p style="color:#888;font-size:13px;margin-bottom:12px">Edit langsung, otomatis hot-reload ke bot.</p>
+      <div id="agentsInfo" style="font-size:12px;color:#555;margin-bottom:8px"></div>
+      <textarea id="agentsEditor" rows="20"></textarea>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="saveAgents()">💾 Save & Reload</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="tab-settings" class="tab-content">
+      <h2>⚙️ Settings</h2>
+      <div class="settings-grid" id="settingsForm"></div>
+      <div class="actions" style="margin-top:16px">
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        <button class="btn btn-warning" onclick="testLlm()" style="margin-left:8px">🔌 Test LLM</button>
+      </div>
+      <div id="llmTestResult" style="margin-top:12px;font-size:13px"></div>
+    </div>
+
+    <!-- Logs -->
+    <div id="tab-logs" class="tab-content">
+      <h2>📜 Live Logs</h2>
+      <div class="actions" style="margin-bottom:12px">
+        <button class="btn btn-sm" onclick="clearLogs()">Clear</button>
+        <button class="btn btn-sm btn-primary" onclick="toggleAutoScroll()" id="scrollBtn">Auto-scroll: ON</button>
+      </div>
+      <div id="logsBox" class="logs-box"><div class="empty">Waiting for logs...</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+
+<!-- Edit User Modal -->
+<div id="editModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center">
+  <div style="background:#1a1a24;border-radius:12px;padding:28px;width:460px;max-width:92vw;border:1px solid #2a2a35">
+    <h3 style="color:#fff;margin-bottom:16px">✏️ Edit User</h3>
+    <div id="editUserId" style="font-size:12px;color:#555;margin-bottom:12px"></div>
+    <div class="form-group"><label>Nama</label><input id="edit_name"></div>
+    <div class="form-group"><label>Tinggi (cm)</label><input id="edit_height" type="number"></div>
+    <div class="form-group"><label>Berat (kg)</label><input id="edit_weight" type="number"></div>
+    <div class="form-group"><label>Target Berat (kg)</label><input id="edit_targetWeight" type="number"></div>
+    <div class="form-group"><label>Tahun Lahir</label><input id="edit_birthYear" type="number" onchange="updateAgeFromBirthYear()" oninput="updateAgeFromBirthYear()"></div>
+    <div class="form-group"><label>Umur (otomatis dari tahun lahir)</label><input id="edit_age" type="number" disabled style="opacity:0.6"></div>
+    <div class="form-group"><label>Gender</label>
+      <select id="edit_gender" style="width:100%;background:#252535;border:1px solid #333;border-radius:6px;padding:10px;color:#fff;outline:none">
+        <option value="male">Cowok</option>
+        <option value="female">Cewek</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Goal</label>
+      <select id="edit_goal" style="width:100%;background:#252535;border:1px solid #333;border-radius:6px;padding:10px;color:#fff;outline:none">
+        <option value="lose">Turun</option>
+        <option value="gain">Naik</option>
+        <option value="maintain">Maintain</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Aktivitas</label>
+      <select id="edit_activity" style="width:100%;background:#252535;border:1px solid #333;border-radius:6px;padding:10px;color:#fff;outline:none">
+        <option value="sedentary">Santai</option>
+        <option value="light">Ringan</option>
+        <option value="moderate">Sedang</option>
+        <option value="active">Aktif</option>
+        <option value="very_active">Sangat Aktif</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveEditUser()">💾 Simpan</button>
+      <button class="btn" onclick="closeEditModal()" style="background:#333;color:#fff">Batal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- State ----
+let password = localStorage.getItem('panelPassword') || '';
+let autoScroll = true;
+let logStream = null;
+
+// ---- Login ----
+function login() {
+  const pw = document.getElementById('passwordInput').value;
+  password = pw;
+  testAuth();
+}
+
+async function testAuth() {
+  try {
+    const res = await fetch('/api/stats', { headers: { 'x-panel-password': password } });
+    if (!res.ok) throw new Error('Unauthorized');
+    localStorage.setItem('panelPassword', password);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } catch {
+    document.getElementById('loginError').textContent = 'Password salah!';
+  }
+}
+
+// Auto-login
+if (password) testAuth();
+
+// ---- Toast ----
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ---- Tabs ----
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sidebar .tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector(`.sidebar .tab[data-tab="${name}"]`).classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'users') loadUsers();
+  if (name === 'data') loadData();
+  if (name === 'agents') loadAgents();
+  if (name === 'settings') loadSettings();
+  if (name === 'logs') initLogs();
+}
+
+async function restartBot() {
+  if (!confirm('Restart bot sekarang? Semua proses akan dimulai ulang (WhatsApp tetap tersambung).')) return;
+  toast('♻️ Restarting bot...', 'info');
+  try {
+    await fetch('/api/restart', { method: 'POST', headers: { 'x-panel-password': password } });
+    toast('Restart initiated! Panel akan kembali dalam ~10 detik...', 'info');
+    // Panel restarts: try to reconnect/refresh automatically
+    setTimeout(() => { location.reload(); }, 12000);
+  } catch (e) {
+    // Process may die before response returns — assume it worked
+    toast('Restart initiated! Menunggu kembali...', 'info');
+    setTimeout(() => { location.reload(); }, 12000);
+  }
+}
+
+// ---- API helper ----
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json', 'x-panel-password': password, ...opts.headers },
+    ...opts,
+  });
+  if (!res.ok) {
+    if (res.status === 401) { localStorage.removeItem('panelPassword'); location.reload(); }
+    throw new Error(await res.text());
+  }
+  return res.json();
+}
+
+// ---- Init ----
+async function init() {
+  loadDashboard();
+  initLogs();
+  // Refresh dashboard every 10s
+  setInterval(() => {
+    const active = document.querySelector('.tab-content.active');
+    if (active && active.id === 'tab-dashboard') loadDashboard();
+  }, 10000);
+}
+
+// ====================== 1. DASHBOARD ======================
+async function loadDashboard() {
+  try {
+    const data = await api('/api/stats');
+    const grid = document.getElementById('statsGrid');
+    const uptime = formatUptime(data.uptimeSeconds);
+    grid.innerHTML = `
+      <div class="stat-card">
+        <div class="value"><span class="status-dot ${data.ready ? 'online' : 'offline'}"></span>${data.ready ? 'Online' : 'Offline'}</div>
+        <div class="label">Bot Status</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.userCount}</div>
+        <div class="label">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.todayFood}</div>
+        <div class="label">Food Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.todayActivity}</div>
+        <div class="label">Activities Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.messageCount}</div>
+        <div class="label">Messages Processed</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.activeChats}</div>
+        <div class="label">Active Chats</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.chatHistorySize}</div>
+        <div class="label">Chat History Messages</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.foodCount}</div>
+        <div class="label">Total Food Entries</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.activityCount}</div>
+        <div class="label">Total Activities</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${data.weightCount}</div>
+        <div class="label">Total Weight Logs</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${uptime}</div>
+        <div class="label">Uptime</div>
+      </div>
+      <div class="stat-card" style="grid-column:span 2">
+        <div class="value" style="font-size:16px">${data.llmModel}</div>
+        <div class="label">Model</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">${data.llmUrl}</div>
+      </div>
+    `;
+  } catch (e) { toast('Load dashboard failed', 'error'); }
+}
+
+function formatUptime(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m ${sec}s`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+// ====================== 2. USERS ======================
+async function loadUsers() {
+  try {
+    const data = await api('/api/users');
+    const users = data.users;
+    if (!users.length) {
+      document.getElementById('usersTable').innerHTML = '<div class="empty">No users yet</div>';
+      return;
+    }
+    let html = `<table><thead><tr>
+      <th>Name</th><th>Weight</th><th>Target</th><th>Goal</th><th>TDEE</th><th>Target Cal</th><th>Activity</th><th>Created</th><th>Actions</th>
+    </tr></thead><tbody>`;
+    for (const u of users) {
+      html += `<tr>
+        <td><strong>${esc(u.name)}</strong><br><span style="font-size:11px;color:#555">${esc(u.whatsappId)}</span></td>
+        <td>${u.weight}kg / ${u.height}cm</td>
+        <td>${u.targetWeight}kg</td>
+        <td>${u.goal}</td>
+        <td>${u.tdee || '-'}</td>
+        <td>${u.targetCalories || '-'}</td>
+        <td>${u.activityLevel}</td>
+        <td style="font-size:12px">${u.createdAt.split('T')[0]}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="openEditUser('${esc(u.whatsappId)}')">Edit</button>
+          <button class="btn btn-warning btn-sm" onclick="resetUser('${esc(u.whatsappId)}')">Reset</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteUser('${esc(u.whatsappId)}')">Delete</button>
+        </td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('usersTable').innerHTML = html;
+  } catch (e) { toast('Load users failed', 'error'); }
+}
+
+async function resetUser(id) {
+  if (!confirm('Reset onboarding for user ' + id + '?')) return;
+  await api('/api/users/' + encodeURIComponent(id) + '/reset', { method: 'POST' });
+  toast('Onboarding reset!', 'success');
+  loadUsers();
+}
+
+async function deleteUser(id) {
+  if (!confirm('DELETE user ' + id + ' and ALL their data? This cannot be undone!')) return;
+  await api('/api/users/' + encodeURIComponent(id) + '/delete', { method: 'POST' });
+  toast('User deleted!', 'success');
+  loadUsers();
+}
+
+let editingUserId = null;
+async function openEditUser(id) {
+  try {
+    const data = await api('/api/users');
+    const user = data.users.find(u => u.whatsappId === id);
+    if (!user) { toast('User not found', 'error'); return; }
+    editingUserId = id;
+    document.getElementById('editUserId').textContent = 'ID: ' + id;
+    document.getElementById('edit_name').value = user.name || '';
+    document.getElementById('edit_height').value = user.height || '';
+    document.getElementById('edit_weight').value = user.weight || '';
+    document.getElementById('edit_targetWeight').value = user.targetWeight || '';
+    document.getElementById('edit_birthYear').value = user.birthYear || '';
+    document.getElementById('edit_age').value = user.age || '';
+    document.getElementById('edit_gender').value = user.gender || 'male';
+    document.getElementById('edit_goal').value = user.goal || 'maintain';
+    document.getElementById('edit_activity').value = user.activityLevel || 'light';
+    document.getElementById('editModal').style.display = 'flex';
+    updateAgeFromBirthYear();
+  } catch (e) { toast('Failed to load user', 'error'); }
+}
+
+function updateAgeFromBirthYear() {
+  const by = parseInt(document.getElementById('edit_birthYear').value);
+  const ageInput = document.getElementById('edit_age');
+  if (by && by >= 1900 && by <= new Date().getFullYear()) {
+    ageInput.value = new Date().getFullYear() - by;
+  } else {
+    ageInput.value = '';
+  }
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+  editingUserId = null;
+}
+
+async function saveEditUser() {
+  if (!editingUserId) return;
+  const body = {
+    name: document.getElementById('edit_name').value.trim(),
+    height: parseFloat(document.getElementById('edit_height').value),
+    weight: parseFloat(document.getElementById('edit_weight').value),
+    targetWeight: parseFloat(document.getElementById('edit_targetWeight').value),
+    birthYear: parseInt(document.getElementById('edit_birthYear').value),
+    age: parseInt(document.getElementById('edit_age').value),
+    gender: document.getElementById('edit_gender').value,
+    goal: document.getElementById('edit_goal').value,
+    activityLevel: document.getElementById('edit_activity').value,
+  };
+  try {
+    const res = await api('/api/users/' + encodeURIComponent(editingUserId), { method: 'PUT', body: JSON.stringify(body) });
+    toast(res.message || 'User updated!', 'success');
+    closeEditModal();
+    loadUsers();
+  } catch (e) { toast('Save failed', 'error'); }
+}
+
+// ====================== 3. DATA VIEWER ======================
+async function loadData() {
+  const userId = document.getElementById('dataUserFilter').value;
+  const date = document.getElementById('dataDateFilter').value;
+  const type = document.getElementById('dataTypeFilter').value;
+  try {
+    let url = '/api/data/' + type;
+    const params = [];
+    if (userId) params.push('userId=' + encodeURIComponent(userId));
+    if (date && type !== 'weight') params.push('date=' + encodeURIComponent(date));
+    if (params.length) url += '?' + params.join('&');
+    const data = await api(url);
+    const entries = data.entries;
+    if (!entries.length) {
+      document.getElementById('dataTable').innerHTML = '<div class="empty">No entries found</div>';
+      return;
+    }
+    let html = `<table><thead><tr>`;
+    if (type === 'food') {
+      html += `<th>Date</th><th>Time</th><th>User</th><th>Type</th><th>Description</th><th>Calories</th><th>P</th><th>C</th><th>F</th><th>Action</th></tr></thead><tbody>`;
+      for (const e of entries) {
+        html += `<tr><td>${e.date}</td><td>${e.timestamp?.split('T')[1]?.slice(0,5) || '-'}</td><td>${esc(e.userName || e.whatsappId)}</td><td>${e.type}</td><td>${esc(e.description)}</td><td>${e.calories}</td><td>${e.protein || '-'}</td><td>${e.carbs || '-'}</td><td>${e.fats || '-'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteDataEntry('food',${e.id})">Hapus</button></td></tr>`;
+      }
+    } else if (type === 'activities') {
+      html += `<th>Date</th><th>Time</th><th>User</th><th>Description</th><th>Duration</th><th>Cal Burned</th><th>Action</th></tr></thead><tbody>`;
+      for (const e of entries) {
+        html += `<tr><td>${e.date}</td><td>${e.timestamp?.split('T')[1]?.slice(0,5) || '-'}</td><td>${esc(e.userName || e.whatsappId)}</td><td>${esc(e.description)}</td><td>${e.duration || '-'}m</td><td>${e.caloriesBurned || '-'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteDataEntry('activities',${e.id})">Hapus</button></td></tr>`;
+      }
+    } else {
+      html += `<th>Date</th><th>User</th><th>Weight</th><th>Notes</th><th>Action</th></tr></thead><tbody>`;
+      for (const e of entries) {
+        html += `<tr><td>${e.date}</td><td>${esc(e.userName || e.whatsappId)}</td><td><strong>${e.weight}kg</strong></td><td>${esc(e.notes || '-')}</td><td><button class="btn btn-danger btn-sm" onclick="deleteDataEntry('weight',${e.id})">Hapus</button></td></tr>`;
+      }
+    }
+    html += '</tbody></table>';
+    document.getElementById('dataTable').innerHTML = html;
+  } catch (e) { toast('Load data failed', 'error'); }
+}
+
+async function deleteDataEntry(type, id) {
+  if (!confirm(`Hapus ${type} entry #${id}?`)) return;
+  await api('/api/data/' + type + '/' + id, { method: 'DELETE' });
+  toast('Data dihapus!', 'success');
+  loadData();
+}
+
+// Fill user filter dropdown
+async function fillUserFilter() {
+  try {
+    const data = await api('/api/users');
+    const sel = document.getElementById('dataUserFilter');
+    sel.innerHTML = '<option value="">-- All users --</option>';
+    for (const u of data.users) {
+      sel.innerHTML += `<option value="${esc(u.whatsappId)}">${esc(u.name)}</option>`;
+    }
+  } catch {}
+}
+// Override loadData call to also fill user filter first time
+const _origLoadData = loadData;
+loadData = async function() {
+  const sel = document.getElementById('dataUserFilter');
+  if (sel.options.length <= 1) await fillUserFilter();
+  _origLoadData();
+}.bind(loadData);
+
+// ====================== 4. AGENTS.md ======================
+async function loadAgents() {
+  try {
+    const data = await api('/api/agents');
+    document.getElementById('agentsEditor').value = data.content;
+    document.getElementById('agentsInfo').textContent = `Path: ${data.path} | ${data.chars} chars | ${data.content.split('\\n').length} lines`;
+  } catch (e) { toast('Load AGENTS.md failed', 'error'); }
+}
+
+async function saveAgents() {
+  const content = document.getElementById('agentsEditor').value;
+  try {
+    await api('/api/agents', { method: 'PUT', body: JSON.stringify({ content }) });
+    toast('AGENTS.md saved & reloaded!', 'success');
+  } catch (e) { toast('Save failed', 'error'); }
+}
+
+// ====================== 5. SETTINGS ======================
+async function loadSettings() {
+  const data = await api('/api/settings');
+  const form = document.getElementById('settingsForm');
+  form.innerHTML = `
+    <div class="form-group"><label>LLM API URL</label><input id="s_llmApiUrl" value="${esc(data.llmApiUrl)}"></div>
+    <div class="form-group"><label>Model</label><input id="s_llmModel" value="${esc(data.llmModel)}"></div>
+    <div class="form-group"><label>Temperature</label><input id="s_temperature" type="number" step="0.1" min="0" max="2" value="${data.temperature}"></div>
+    <div class="form-group"><label>Max Tokens</label><input id="s_maxTokens" type="number" min="1" value="${data.maxTokens}"></div>
+    <div class="form-group"><label>Max Message Length</label><input id="s_maxMessageLength" type="number" min="1" value="${data.maxMessageLength}"></div>
+    <div class="form-group"><label>Bot Name</label><input id="s_botName" value="${esc(data.botName)}"></div>
+  `;
+}
+
+async function saveSettings() {
+  const body = {
+    llmApiUrl: document.getElementById('s_llmApiUrl').value,
+    llmModel: document.getElementById('s_llmModel').value,
+    temperature: parseFloat(document.getElementById('s_temperature').value),
+    maxTokens: parseInt(document.getElementById('s_maxTokens').value),
+    maxMessageLength: parseInt(document.getElementById('s_maxMessageLength').value),
+    botName: document.getElementById('s_botName').value,
+  };
+  try {
+    await api('/api/settings', { method: 'PUT', body: JSON.stringify(body) });
+    toast('Settings saved & applied!', 'success');
+  } catch (e) { toast('Save failed', 'error'); }
+}
+
+async function testLlm() {
+  const el = document.getElementById('llmTestResult');
+  el.textContent = '⏳ Testing LLM connection...';
+  try {
+    const data = await api('/api/llm/test', { method: 'POST' });
+    el.innerHTML = data.ok
+      ? '<span style="color:#4ade80">✅ ' + esc(data.message) + '</span>'
+      : '<span style="color:#ff5555">❌ ' + esc(data.message) + '</span>';
+  } catch (e) {
+    el.innerHTML = '<span style="color:#ff5555">❌ Error: ' + esc(e.message) + '</span>';
+  }
+}
+
+// ====================== 6. LOGS ======================
+function initLogs() {
+  if (logStream) return;
+  logStream = true;
+  const box = document.getElementById('logsBox');
+
+  // Use fetch-based SSE (EventSource can't set auth headers)
+  fetch('/api/logs/stream', {
+    headers: { 'x-panel-password': password }
+  }).then(res => {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    function read() {
+      reader.read().then(({ done, value }) => {
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const entry = JSON.parse(line.slice(6));
+              addLogEntry(entry);
+            } catch {}
+          }
+        }
+        read();
+      }).catch(() => {
+        setTimeout(initLogs, 3000);
+      });
+    }
+    read();
+  }).catch(() => {
+    setTimeout(initLogs, 3000);
+  });
+}
+
+function addLogEntry(entry) {
+  const box = document.getElementById('logsBox');
+  // Remove empty state
+  const empty = box.querySelector('.empty');
+  if (empty) box.innerHTML = '';
+
+  const ts = new Date(entry.ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const div = document.createElement('div');
+  div.innerHTML = `<span class="ts">[${ts}]</span> <span class="log-${entry.level}">${esc(entry.message)}</span>`;
+  box.appendChild(div);
+
+  if (autoScroll) {
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // Trim old
+  while (box.children.length > 500) {
+    box.removeChild(box.firstChild);
+  }
+}
+
+function clearLogs() {
+  document.getElementById('logsBox').innerHTML = '<div class="empty">Cleared</div>';
+}
+
+function toggleAutoScroll() {
+  autoScroll = !autoScroll;
+  document.getElementById('scrollBtn').textContent = 'Auto-scroll: ' + (autoScroll ? 'ON' : 'OFF');
+}
+
+// ---- Utility ----
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
