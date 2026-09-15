@@ -5,3 +5,4 @@ dist/
 .wwebjs_cache/
 *.log
 data/
+.env.database
