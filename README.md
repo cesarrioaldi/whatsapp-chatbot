@@ -1,158 +1,85 @@
-# WhatsApp Chatbot dengan LLM
+# WhatsApp Diet Coach Bot
 
-Chatbot WhatsApp yang menggunakan LLM API (OpenAI-compatible) dengan konfigurasi agent dari AGENTS.md.
+Chatbot WhatsApp (personal trainer / diet & nutrition coach) berbasis LLM API (OpenAI-compatible), dengan RAG search dan panel admin.
 
 ## Fitur
 
-- 🤖 Integrasi dengan LLM API (OpenAI-compatible)
-- 💬 Chat history per kontak
-- 📝 Konfigurasi agent dari AGENTS.md (hot-reload)
+- 🤖 LLM API (OpenAI-compatible)
+- 📝 Behavior bot dikonfigurasi lewat `AGENTS.md` (hot-reload, tanpa restart)
+- 💬 Log makanan/aktivitas lewat blok `[ACTION]`, disimpan ke SQLite
+- 🔍 RAG search (duckduckgo via `search-bridge.py`, fallback Wikipedia)
+- 🖥 Panel admin (Express) untuk cek log & edit `AGENTS.md`
 - 🔄 Session persistence (tidak perlu scan QR ulang)
-- ⚡ TypeScript untuk type safety
+- ⚡ TypeScript
 
 ## Setup
 
-### 1. Install dependencies
-
 ```bash
 npm install
+cp .env.example .env   # lalu isi sesuai konfigurasi kamu
 ```
 
-### 2. Konfigurasi
-
-Salin `.env.example` ke `.env` dan sesuaikan:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
+Variabel utama di `.env`:
 
 ```env
-LLM_API_URL=http://localhost:8080/v1/chat/completions
-LLM_API_KEY=your-api-key-here
-LLM_MODEL=gpt-3.5-turbo
-BOT_NAME=WhatsApp Assistant
+LLM_API_URL=...
+LLM_API_KEY=...
+LLM_MODEL=...
+BOT_NAME=...
 MAX_TOKENS=2000
 TEMPERATURE=0.7
 AGENTS_MD_PATH=./AGENTS.md
+DATABASE_PATH=./data/diet-tracker.db
+PANEL_PORT=2999
+PANEL_PASSWORD=admin
+MAX_MESSAGE_LENGTH=10000
 ```
 
-### 3. Konfigurasi Agent
-
-Edit `AGENTS.md` untuk mengatur behavior bot. File ini akan di-reload otomatis saat diubah.
-
-Contoh:
-
-```markdown
-# Customer Support Bot
-
-You are a friendly customer support assistant.
-
-## Personality
-- Professional yet warm
-- Patient and helpful
-- Responds in user's language
-
-## Guidelines
-- Keep responses concise for mobile
-- Use emojis sparingly
-- Escalate complex issues
-```
-
-### 4. Jalankan
-
-Development mode (auto-reload):
+## Jalankan
 
 ```bash
-npm run dev
+./start.sh        # build + auto-start search bridge + npm start
 ```
 
-Production mode:
+Atau manual:
 
 ```bash
-npm run build
-npm start
+npm run dev       # development (auto-reload)
+npm run build && npm start   # production
 ```
 
-### 5. Scan QR Code
+Saat pertama kali jalan, scan QR code yang muncul (WhatsApp → Linked Devices → Link a Device). Session tersimpan di `.wwebjs_auth/`.
 
-Saat pertama kali jalan, akan muncul QR code di terminal. Scan dengan WhatsApp di hp kamu:
-
-1. Buka WhatsApp
-2. Tap Menu (⋮) → Linked Devices
-3. Tap "Link a Device"
-4. Scan QR code di terminal
-
-Session akan tersimpan di folder `.wwebjs_auth/`, jadi tidak perlu scan ulang.
-
-## Struktur Project
+## Struktur
 
 ```
-whatsapp-chatbot/
-├── src/
-│   ├── index.ts          # Entry point
-│   ├── client.ts         # WhatsApp client + message handler
-│   ├── llm.ts            # LLM API integration
-│   ├── agents-parser.ts  # AGENTS.md parser
-│   ├── config.ts         # Configuration loader
-│   └── types.ts          # TypeScript types
-├── AGENTS.md             # Agent configuration
-├── .env                  # Environment variables
-├── .env.example          # Environment template
-├── package.json
-└── tsconfig.json
+src/
+├── index.ts          # entry point
+├── client.ts         # WhatsApp client + message handler
+├── llm.ts            # LLM API integration
+├── agents-parser.ts  # AGENTS.md parser & watcher
+├── config.ts         # config loader (+ util tanggal WIB)
+├── database.ts       # SQLite (better-sqlite3)
+├── onboarding.ts     # onboarding flow
+├── panel.ts          # admin panel (Express)
+├── searcher.ts       # RAG search
+├── search-bridge.ts  # client ke search-bridge.py
+└── types.ts          # TypeScript types
 ```
 
-## Testing LLM Connection
+## RAG Search
 
-Bot akan mencoba koneksi ke LLM API saat startup. Pastikan:
+`search-bridge.py` (port 32229) dipakai buat search duckduckgo. Di `start.sh` bridge di-start otomatis. Kalau bridge mati, `searcher.ts` fallback ke Wikipedia (ID/EN).
 
-1. LLM server sudah running
-2. `LLM_API_URL` benar
-3. `LLM_API_KEY` valid (jika diperlukan)
+## Panel Admin
 
-## Hot-reload AGENTS.md
-
-Kamu bisa edit `AGENTS.md` saat bot sedang berjalan. Perubahan akan langsung diterapkan tanpa restart.
-
-## Chat History
-
-- Setiap chat disimpan terpisah per kontak
-- Menyimpan max 20 pesan terakhir (configurable di `client.ts`)
-- History direset saat bot restart
+Default di port `2999` (lihat `PANEL_PORT`). Buat lihat log dan edit `AGENTS.md` dari browser.
 
 ## Troubleshooting
 
-### QR Code tidak muncul
-- Pastikan terminal cukup lebar
-- Coba hapus folder `.wwebjs_auth/` dan scan ulang
-
-### LLM tidak response
-- Cek LLM server running: `curl http://localhost:8080/v1/models`
-- Cek API key benar di `.env`
-- Lihat log error di terminal
-
-### Bot tidak balas pesan
-- Cek log di terminal untuk error
-- Pastikan pesan bukan dari status/broadcast
-- Cek AGENTS.md valid (tidak ada syntax error)
-
-## Production Tips
-
-1. **Persistent Session**: Backup folder `.wwebjs_auth/` agar tidak perlu scan QR ulang
-2. **Process Manager**: Gunakan PM2 atau systemd untuk auto-restart
-3. **Monitoring**: Log ke file atau monitoring service
-4. **Rate Limiting**: Tambahkan rate limit untuk mencegah spam
-
-Contoh dengan PM2:
-
-```bash
-npm run build
-pm2 start dist/index.js --name whatsapp-bot
-pm2 save
-pm2 startup
-```
+- **QR tidak muncul** — pastikan terminal cukup lebar; hapus `.wwebjs_auth/` lalu scan ulang.
+- **LLM tidak balas** — cek `LLM_API_URL` benar & server LLM jalan.
+- **RAG tidak jalan** — cek bridge: `curl "http://localhost:32229/?q=test"`.
 
 ## License
 
