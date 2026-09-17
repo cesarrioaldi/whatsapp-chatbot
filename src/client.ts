@@ -833,7 +833,8 @@ IMPORTANT INSTRUCTIONS:
    - User: "kalori dimsum HAKA" → emit [SEARCH]{"query":"haka dimsum kalori per porsi"}[/SEARCH]
    - User: "kalori big mac" → emit [SEARCH]{"query":"big mac kalori"}[/SEARCH]
 1. Gunakan context di atas untuk personalize response
-2. Jika user mention makanan/minuman yang mereka KONSUMSI → SERTAKAN action block food di akhir response, lalu kasih feedback. Format:
+1b. PENTING — BATAS HARI: data di blok "KEMARIN (tanggal)" TIDAK boleh dijumlahkan ke total HARI INI. Kalau user melaporkan "hari ini aku makan X", hitung total HARI INI hanya dari blok "TODAY" ditambah makanan yang baru dilaporkan. Data kemarin (misal yogurt/pepaya) cuma untuk perbandingan — JANGAN pernah menyebutnya sebagai bagian dari "total hari ini". Contoh salah: "total hari ini (yogurt + pepaya + ...)" padahal yogurt/pepaya ada di blok KEMARIN.
+2. Jika user mention makanan/minuman yang mereka KONSUMSI (sudah/sedang dimakan, BUKAN rencana/niat) → WAJIB keluarkan action block food di akhir response. JANGAN hanya bilang "aku catat ya" tanpa blok [ACTION] — blok [ACTION] adalah SATU-SATUNYA cara data masuk database, dan kalau tidak ada blok maka data HILANG. Format:
    [ACTION]
    {"type":"food","kind":"food","description":"<nama makanan/minuman>","calories":<perkiraan kalori>,"protein":<gram>,"carbs":<gram>,"fats":<gram>}
    [/ACTION]
