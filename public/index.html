@@ -88,7 +88,7 @@ textarea:focus{border-color:#4f8cff}
     <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
     <button class="tab" data-tab="users" onclick="switchTab('users')">👥 Users</button>
     <button class="tab" data-tab="data" onclick="switchTab('data')">📋 Data Viewer</button>
-    <button class="tab" data-tab="agents" onclick="switchTab('agents')">📝 AGENTS.md</button>
+    <button class="tab" data-tab="agents" onclick="switchTab('agents')">📝 Prompt Bot</button>
     <button class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
     <button class="tab" data-tab="logs" onclick="switchTab('logs')">📜 Logs</button>
     <button class="tab" onclick="restartBot()" style="margin-top:20px;color:#f5a623;border-top:1px solid #2a2a35">♻️ Restart Bot</button>
@@ -122,9 +122,9 @@ textarea:focus{border-color:#4f8cff}
       <div id="dataTable" class="table-wrap"></div>
     </div>
 
-    <!-- AGENTS.md -->
+    <!-- Prompt Bot -->
     <div id="tab-agents" class="tab-content">
-      <h2>📝 AGENTS.md Editor</h2>
+      <h2>📝 Prompt Bot Editor</h2>
       <p style="color:#888;font-size:13px;margin-bottom:12px">Edit langsung, otomatis hot-reload ke bot.</p>
       <div id="agentsInfo" style="font-size:12px;color:#555;margin-bottom:8px"></div>
       <textarea id="agentsEditor" rows="20"></textarea>
@@ -529,20 +529,20 @@ loadData = async function() {
   _origLoadData();
 }.bind(loadData);
 
-// ====================== 4. AGENTS.md ======================
+// ====================== 4. Prompt Bot ======================
 async function loadAgents() {
   try {
     const data = await api('/api/agents');
     document.getElementById('agentsEditor').value = data.content;
     document.getElementById('agentsInfo').textContent = `Path: ${data.path} | ${data.chars} chars | ${data.content.split('\\n').length} lines`;
-  } catch (e) { toast('Load AGENTS.md failed', 'error'); }
+  } catch (e) { toast('Load prompt bot failed', 'error'); }
 }
 
 async function saveAgents() {
   const content = document.getElementById('agentsEditor').value;
   try {
     await api('/api/agents', { method: 'PUT', body: JSON.stringify({ content }) });
-    toast('AGENTS.md saved & reloaded!', 'success');
+    toast('Prompt bot saved & reloaded!', 'success');
   } catch (e) { toast('Save failed', 'error'); }
 }
 

@@ -5,10 +5,10 @@ Chatbot WhatsApp (personal trainer / diet & nutrition coach) berbasis LLM API (O
 ## Fitur
 
 - 🤖 LLM API (OpenAI-compatible)
-- 📝 Behavior bot dikonfigurasi lewat `AGENTS.md` (hot-reload, tanpa restart)
+- 📝 Behavior bot dikonfigurasi lewat `BOT_PROMPT.md` (hot-reload, tanpa restart)
 - 💬 Log makanan/aktivitas lewat blok `[ACTION]`, disimpan ke SQLite
 - 🔍 RAG search (duckduckgo via `search-bridge.py`, fallback Wikipedia)
-- 🖥 Panel admin (Express) untuk cek log & edit `AGENTS.md`
+- 🖥 Panel admin (Express) untuk cek log & edit prompt bot (`BOT_PROMPT.md`)
 - 🔄 Session persistence (tidak perlu scan QR ulang)
 - ⚡ TypeScript
 
@@ -28,7 +28,7 @@ LLM_MODEL=...
 BOT_NAME=...
 MAX_TOKENS=2000
 TEMPERATURE=0.7
-AGENTS_MD_PATH=./AGENTS.md
+AGENTS_MD_PATH=./BOT_PROMPT.md
 DATABASE_PATH=./data/diet-tracker.db
 PANEL_PORT=2999
 PANEL_PASSWORD=admin
@@ -57,7 +57,7 @@ src/
 ├── index.ts          # entry point
 ├── client.ts         # WhatsApp client + message handler
 ├── llm.ts            # LLM API integration
-├── agents-parser.ts  # AGENTS.md parser & watcher
+├── agents-parser.ts  # prompt-bot parser & watcher
 ├── config.ts         # config loader (+ util tanggal WIB)
 ├── database.ts       # SQLite (better-sqlite3)
 ├── onboarding.ts     # onboarding flow
@@ -73,7 +73,7 @@ src/
 
 ## Panel Admin
 
-Default di port `2999` (lihat `PANEL_PORT`). Buat lihat log dan edit `AGENTS.md` dari browser.
+Default di port `2999` (lihat `PANEL_PORT`). Buat lihat log dan edit prompt bot (`BOT_PROMPT.md`) dari browser.
 
 ## Troubleshooting
 
