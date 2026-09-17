@@ -6,15 +6,3 @@ dist/
 *.log
 data/
 .env.database
-
-# catatan/internal investigation (tidak perlu di-push)
-AUTO-CONTEXT-MANAGEMENT.md
-BUGFIX-CHANNEL-ERROR.md
-CHANNEL-PROBLEM.md
-CONTEXT-FORMAT.md
-CONTEXT-OVERFLOW.md
-DATABASE.md
-HOW-IT-WORKS.md
-MISCONCEPTION-CONTEXT.md
-USERCONTEXT-EXPLAINED.md
-USAGE.md
